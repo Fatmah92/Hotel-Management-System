@@ -1,81 +1,122 @@
-import unittest
-from hotel_management import Guest, Room, Hotel, Payment, CreditCardPayment, CashPayment, Invoice, Reservation, Feedback
+class Guest:
+    """Represents a guest in the hotel system, storing personal details and reservation history."""
+    def __init__(self, guest_id, name, email, contact_info, loyalty_status=False):
+        self.guest_id = guest_id  # Unique identifier for the guest
+        self.name = name  # Guest's name
+        self.email = email  # Guest's email address
+        self.contact_info = contact_info  # Contact details
+        self.loyalty_status = loyalty_status  # Boolean indicating if the guest is a loyalty program member
+        self.reservations = []  # List to store guest's reservation history
 
-class TestHotelManagementSystem(unittest.TestCase):
-    
-    def test_guest_account_creation(self):
-        """Test guest account creation with personal details."""
-        guest1 = Guest(1, "Alice")
-        guest2 = Guest(2, "Bob")
-        self.assertEqual(guest1.name, "Alice")
-        self.assertEqual(guest2.name, "Bob")
+    def update_info(self, email=None, contact_info=None, loyalty_status=None):
+        """Allows updating guest details."""
+        if email:
+            self.email = email
+        if contact_info:
+            self.contact_info = contact_info
+        if loyalty_status is not None:
+            self.loyalty_status = loyalty_status
 
-    def test_search_available_rooms(self):
-        """Test searching for available rooms in a hotel."""
-        hotel = Hotel("Grand Plaza")
-        room1 = Room(101)
-        room2 = Room(102)
-        hotel.add_room(room1)
-        hotel.add_room(room2)
-        
-        self.assertIn(room1, hotel.rooms)
-        self.assertIn(room2, hotel.rooms)
-    
-    def test_make_room_reservation(self):
-        """Test making a room reservation."""
-        guest = Guest(1, "Alice")
-        payment = CreditCardPayment(200, "1234567890123456")
-        invoice = Invoice(101, payment)
-        reservation = Reservation(1, invoice)
-        
-        self.assertEqual(reservation.reservation_id, 1)
-        self.assertEqual(reservation.invoice, invoice)
-    
-    def test_booking_confirmation_notification(self):
-        """Test booking confirmation notification (simulated with a message)."""
-        guest = Guest(1, "Alice")
-        confirmation_message = f"Booking confirmed for {guest.name}."
-        
-        self.assertEqual(confirmation_message, "Booking confirmed for Alice.")
-    
-    def test_invoice_generation(self):
-        """Test invoice generation with payment details."""
-        payment = CashPayment(150, "USD")
-        invoice = Invoice(202, payment)
-        
-        self.assertEqual(invoice.invoice_id, 202)
-        self.assertEqual(invoice.get_payment(), payment)
-    
-    def test_processing_different_payments(self):
-        """Test processing different payment methods."""
-        card_payment = CreditCardPayment(300, "9876543210987654")
-        cash_payment = CashPayment(200, "USD")
-        
-        self.assertEqual(card_payment.get_amount(), 300)
-        self.assertEqual(cash_payment.get_amount(), 200)
-    
-    def test_display_reservation_history(self):
-        """Test displaying guest's reservation history."""
-        guest = Guest(1, "Alice")
-        payment = CreditCardPayment(200, "1234567890123456")
-        invoice = Invoice(101, payment)
-        reservation = Reservation(1, invoice)
-        guest_reservations = [reservation]
-        
-        self.assertIn(reservation, guest_reservations)
-    
-    def test_cancel_reservation(self):
-        """Test canceling a reservation and updating room availability."""
-        hotel = Hotel("Grand Plaza")
-        room = Room(103)
-        hotel.add_room(room)
-        payment = CashPayment(180, "USD")
-        invoice = Invoice(303, payment)
-        reservation = Reservation(2, invoice)
-        
-        canceled_reservations = []
-        canceled_reservations.append(reservation)
-        self.assertIn(reservation, canceled_reservations)
+    def add_reservation(self, reservation):
+        """Adds a reservation to the guest's history."""
+        self.reservations.append(reservation)
 
-if __name__ == '__main__':
-    unittest.main()
+class Room:
+    """Represents a hotel room with an ID, type, and amenities."""
+    def __init__(self, room_id, room_type, amenities):
+        self.room_id = room_id  # Unique room number or ID
+        self.room_type = room_type  # Type of room (e.g., Single, Double, Suite)
+        self.amenities = amenities  # List of room amenities (e.g., Wi-Fi, TV, Mini-bar)
+        self.available = True  # Availability status
+
+    def book_room(self):
+        """Marks the room as booked."""
+        self.available = False
+
+    def cancel_booking(self):
+        """Marks the room as available again after cancellation."""
+        self.available = True
+
+class Hotel:
+    """Represents a hotel with a name, rooms, and reservations."""
+    def __init__(self, name):
+        self.name = name  # Name of the hotel
+        self.rooms = []  # List of all rooms in the hotel
+        self.reservations = []  # List of all reservations
+    
+    def add_room(self, room):
+        """Adds a new room to the hotel's inventory."""
+        self.rooms.append(room)
+
+    def search_available_rooms(self, room_type=None, amenities=None):
+        """Finds and returns available rooms matching the given criteria."""
+        return [room for room in self.rooms if room.available and 
+                (room_type is None or room.room_type == room_type) and 
+                (amenities is None or all(a in room.amenities for a in amenities))]
+
+    def make_reservation(self, guest, room, check_in, check_out, payment):
+        """Creates a new reservation if the room is available."""
+        if room.available:
+            room.book_room()
+            invoice = Invoice(len(self.reservations) + 1, payment)
+            reservation = Reservation(len(self.reservations) + 1, guest, room, check_in, check_out, invoice)
+            self.reservations.append(reservation)
+            guest.add_reservation(reservation)
+            return reservation
+        return None
+
+    def cancel_reservation(self, reservation):
+        """Cancels a reservation and marks the room as available again."""
+        reservation.room.cancel_booking()
+        self.reservations.remove(reservation)
+
+class Payment:
+    """Base class for handling payments."""
+    def __init__(self, amount):
+        self.amount = amount  # Payment amount
+    
+    def get_amount(self):
+        """Returns the payment amount."""
+        return self.amount
+
+class CreditCardPayment(Payment):
+    """Handles payments made via credit card."""
+    def __init__(self, amount, card_number):
+        super().__init__(amount)
+        self.card_number = card_number  # Credit card number
+
+class CashPayment(Payment):
+    """Handles cash payments with specified currency."""
+    def __init__(self, amount, currency):
+        super().__init__(amount)
+        self.currency = currency  # Currency type (e.g., USD, EUR)
+
+class Invoice:
+    """Represents an invoice for a reservation, storing payment details."""
+    def __init__(self, invoice_id, payment, nightly_rate=0, extra_charges=0, discount=0):
+        self.invoice_id = invoice_id  # Unique identifier for the invoice
+        self.payment = payment  # Payment details
+        self.nightly_rate = nightly_rate  # Cost per night
+        self.extra_charges = extra_charges  # Additional charges (e.g., minibar, room service)
+        self.discount = discount  # Any applied discount
+        self.total_amount = (nightly_rate + extra_charges - discount)  # Total amount to be paid
+    
+    def get_payment(self):
+        """Returns the associated payment details."""
+        return self.payment
+
+class Reservation:
+    """Represents a hotel room reservation."""
+    def __init__(self, reservation_id, guest, room, check_in, check_out, invoice):
+        self.reservation_id = reservation_id  # Unique reservation ID
+        self.guest = guest  # Guest who made the reservation
+        self.room = room  # Room assigned to the reservation
+        self.check_in = check_in  # Check-in date
+        self.check_out = check_out  # Check-out date
+        self.invoice = invoice  # Associated invoice
+
+class Feedback:
+    """Allows guests to leave feedback about their stay."""
+    def __init__(self, guest, comments):
+        self.guest = guest  # Guest providing feedback
+        self.comments = comments  # Feedback text/comments
