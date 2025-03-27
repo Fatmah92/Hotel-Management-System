@@ -1,0 +1,133 @@
+import datetime
+
+class Guest:
+    """
+    Represents a guest in the hotel system.
+    """
+    def __init__(self, name, email, contact, loyalty_status):
+        self.name = name  # Guest's name
+        self.email = email  # Guest's email address
+        self.contact = contact  # Guest's contact number
+        self.loyalty_status = loyalty_status  # Guest's loyalty status (e.g., regular, VIP)
+        self.reservations = []  # List to store guest's reservations
+
+    def make_reservation(self, reservation):
+        """Adds a reservation to the guest's record."""
+        self.reservations.append(reservation)
+        print(f"Reservation made successfully for {self.name}.")
+
+    def view_reservations(self):
+        """Displays all reservations for the guest."""
+        if not self.reservations:
+            print("No reservations found.")
+        for res in self.reservations:
+            print(res)
+
+    def __str__(self):
+        """String representation of a Guest."""
+        return f"Guest: {self.name}, Email: {self.email}, Contact: {self.contact}, Loyalty: {self.loyalty_status}"
+
+class Room:
+    """
+    Represents a hotel room.
+    """
+    def __init__(self, room_number, room_type, amenities, price, is_available=True):
+        self.room_number = room_number  # Unique room number
+        self.room_type = room_type  # Type of room (e.g., Single, Double, Suite)
+        self.amenities = amenities  # List of room amenities
+        self.price = price  # Price per night
+        self.is_available = is_available  # Room availability status
+
+    def book_room(self):
+        """Marks the room as booked."""
+        if self.is_available:
+            self.is_available = False
+            print(f"Room {self.room_number} booked successfully.")
+        else:
+            print(f"Room {self.room_number} is already booked.")
+
+    def cancel_booking(self):
+        """Marks the room as available."""
+        self.is_available = True
+        print(f"Room {self.room_number} booking cancelled.")
+
+    def __str__(self):
+        """String representation of a Room."""
+        return f"Room {self.room_number} ({self.room_type}) - {'Available' if self.is_available else 'Booked'}"
+
+class Reservation:
+    """
+    Represents a hotel room reservation.
+    """
+    def __init__(self, guest, room, check_in, check_out):
+        self.guest = guest  # Guest making the reservation
+        self.room = room  # Room being reserved
+        self.check_in = check_in  # Check-in date
+        self.check_out = check_out  # Check-out date
+        self.invoice = None  # Invoice for the reservation
+
+    def generate_invoice(self):
+        """Generates an invoice for the reservation."""
+        nights = (self.check_out - self.check_in).days
+        total_cost = nights * self.room.price
+        self.invoice = Invoice(self, total_cost)
+        print(f"Invoice generated: {self.invoice}")
+
+    def __str__(self):
+        """String representation of a Reservation."""
+        return f"Reservation for {self.guest.name}: Room {self.room.room_number} from {self.check_in} to {self.check_out}"
+
+class Invoice:
+    """
+    Represents an invoice for a reservation.
+    """
+    def __init__(self, reservation, total_amount):
+        self.reservation = reservation  # Associated reservation
+        self.total_amount = total_amount  # Total invoice amount
+        self.is_paid = False  # Payment status
+
+    def process_payment(self, payment_method):
+        """Processes the payment for the invoice."""
+        if not self.is_paid:
+            self.is_paid = True
+            print(f"Payment of {self.total_amount} processed using {payment_method}.")
+        else:
+            print("Invoice already paid.")
+
+    def __str__(self):
+        """String representation of an Invoice."""
+        return f"Invoice - Total: {self.total_amount}, Paid: {self.is_paid}"
+
+# Test cases
+guest1 = Guest("Fatima", "fatima@example.com", "1234567890", "VIP")
+guest2 = Guest("Salma", "salma@example.com", "0987654321", "Regular")
+
+room1 = Room(101, "Deluxe", ["WiFi", "TV", "AC"], 150)
+room2 = Room(102, "Standard", ["WiFi", "Fan"], 100)
+
+# Creating reservations
+reservation1 = Reservation(guest1, room1, datetime.date(2025, 4, 1), datetime.date(2025, 4, 5))
+reservation2 = Reservation(guest2, room2, datetime.date(2025, 4, 3), datetime.date(2025, 4, 7))
+
+guest1.make_reservation(reservation1)
+guest2.make_reservation(reservation2)
+
+# Booking rooms
+room1.book_room()
+room2.book_room()
+
+# Generating invoices
+reservation1.generate_invoice()
+reservation2.generate_invoice()
+
+# Processing payments
+reservation1.invoice.process_payment("Credit Card")
+reservation2.invoice.process_payment("Cash")
+
+# Viewing reservations
+guest1.view_reservations()
+guest2.view_reservations()
+
+# Canceling a reservation
+room1.cancel_booking()
+room2.cancel_booking()
